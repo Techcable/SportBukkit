@@ -1,0 +1,163 @@
+From 854de55f854cf7fe2f907a9fc7a5772a36130b4d Mon Sep 17 00:00:00 2001
+From: Jedediah Smith <jedediah@silencegreys.com>
+Date: Tue, 19 May 2015 06:30:47 -0400
+Subject: [PATCH] Item Attribute Modifier API
+
+
+diff --git a/src/main/java/org/bukkit/attribute/Attribute.java b/src/main/java/org/bukkit/attribute/Attribute.java
+index 38bea1e..d9e83ad 100644
+--- a/src/main/java/org/bukkit/attribute/Attribute.java
++++ b/src/main/java/org/bukkit/attribute/Attribute.java
+@@ -1,5 +1,8 @@
+ package org.bukkit.attribute;
+ 
++import java.util.HashMap;
++import java.util.Map;
++
+ /**
+  * Types of attributes which may be present on an {@link Attributable}.
+  */
+@@ -8,41 +11,66 @@ public enum Attribute {
+     /**
+      * Maximum health of an Entity.
+      */
+-    GENERIC_MAX_HEALTH,
++    GENERIC_MAX_HEALTH("generic.maxHealth"),
+     /**
+      * Range at which an Entity will follow others.
+      */
+-    GENERIC_FOLLOW_RANGE,
++    GENERIC_FOLLOW_RANGE("generic.followRange"),
+     /**
+      * Resistance of an Entity to knockback.
+      */
+-    GENERIC_KNOCKBACK_RESISTANCE,
++    GENERIC_KNOCKBACK_RESISTANCE("generic.knockbackResistance"),
+     /**
+      * Movement speed of an Entity.
+      */
+-    GENERIC_MOVEMENT_SPEED,
++    GENERIC_MOVEMENT_SPEED("generic.movementSpeed"),
+     /**
+      * Attack damage of an Entity.
+      */
+-    GENERIC_ATTACK_DAMAGE,
++    GENERIC_ATTACK_DAMAGE("generic.attackDamage"),
+     /**
+      * Attack speed of an Entity.
+      */
+-    GENERIC_ATTACK_SPEED,
++    GENERIC_ATTACK_SPEED("generic.attackSpeed"),
+     /**
+      * Armor bonus of an Entity.
+      */
+-    GENERIC_ARMOR,
++    GENERIC_ARMOR("generic.armor"),
+     /**
+      * Luck bonus of an Entity.
+      */
+-    GENERIC_LUCK,
++    GENERIC_LUCK("generic.luck"),
+     /**
+      * Strength with which a horse will jump.
+      */
+-    HORSE_JUMP_STRENGTH,
++    HORSE_JUMP_STRENGTH("horse.jumpStrength"),
+     /**
+      * Chance of a zombie to spawn reinforcements.
+      */
+-    ZOMBIE_SPAWN_REINFORCEMENTS;
++    ZOMBIE_SPAWN_REINFORCEMENTS("zombie.spawnReinforcements");
++
++    private final String name;
++
++    Attribute(String name) {
++        this.name = name;
++    }
++
++    /**
++     * @return the external name of this attribute
++     */
++    public String getName() {
++        return name;
++    }
++
++    private static final Map<String, Attribute> byName = new HashMap<String, Attribute>();
++
++    static {
++        for(Attribute attribute : values()) {
++            byName.put(attribute.getName(), attribute);
++        }
++    }
++
++    public static Attribute byName(String name) {
++        return byName.get(name);
++    }
+ }
+diff --git a/src/main/java/org/bukkit/attribute/AttributeModifier.java b/src/main/java/org/bukkit/attribute/AttributeModifier.java
+index ade7bf0..239c56a 100644
+--- a/src/main/java/org/bukkit/attribute/AttributeModifier.java
++++ b/src/main/java/org/bukkit/attribute/AttributeModifier.java
+@@ -99,5 +99,11 @@ public class AttributeModifier implements ConfigurationSerializable {
+          * Multiply amount by this value, after adding 1 to it.
+          */
+         MULTIPLY_SCALAR_1;
++
++        public static Operation fromOpcode(int code) {
++            if(code < 0) code = 0;
++            if(code >= values().length) code = values().length - 1;
++            return values()[code];
++        }
+     }
+ }
+diff --git a/src/main/java/org/bukkit/inventory/meta/ItemMeta.java b/src/main/java/org/bukkit/inventory/meta/ItemMeta.java
+index 80a2c3b..32e67b8 100644
+--- a/src/main/java/org/bukkit/inventory/meta/ItemMeta.java
++++ b/src/main/java/org/bukkit/inventory/meta/ItemMeta.java
+@@ -1,9 +1,12 @@
+ package org.bukkit.inventory.meta;
+ 
++import java.util.Collection;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+ 
++import org.bukkit.attribute.Attribute;
++import org.bukkit.attribute.AttributeModifier;
+ import org.bukkit.configuration.serialization.ConfigurationSerializable;
+ import org.bukkit.enchantments.Enchantment;
+ import org.bukkit.inventory.ItemFlag;
+@@ -159,6 +162,30 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable {
+ 
+     void setUnbreakable(boolean unbreakable);
+ 
++    boolean hasAttributeModifiers();
++
++    Collection<String> getModifiedAttributes();
++
++    boolean hasModifiedAttribute(String attribute);
++
++    boolean hasModifiedAttribute(Attribute attribute);
++
++    boolean hasAttributeModifier(String attribute, AttributeModifier modifier);
++
++    boolean hasAttributeModifier(Attribute attribute, AttributeModifier modifier);
++
++    Collection<AttributeModifier> getAttributeModifiers(String attribute);
++
++    Collection<AttributeModifier> getAttributeModifiers(Attribute attribute);
++
++    void addAttributeModifier(String attribute, AttributeModifier modifier);
++
++    void addAttributeModifier(Attribute attribute, AttributeModifier modifier);
++
++    void removeAttributeModifier(String attribute, AttributeModifier modifier);
++
++    void removeAttributeModifier(Attribute attribute, AttributeModifier modifier);
++
+     @SuppressWarnings("javadoc")
+     ItemMeta clone();
+ }
+-- 
+1.9.0
+
